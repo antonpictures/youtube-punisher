@@ -17,7 +17,7 @@
     return false;
   }
 
-  // ---- Track last known content time (updated when NOT in an ad) ----
+  // ---- Track last known content time ----
   let lastKnownTime = 0;
   let lastKnownVid = null;
   setInterval(() => {
@@ -26,12 +26,10 @@
     if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
       lastKnownTime = Math.floor(v.currentTime);
     }
-    // Also capture from URL on every tick
     const vid = new URLSearchParams(location.search).get('v');
     if (vid) lastKnownVid = vid;
   }, 500);
 
-  // Also track via mutation observer on video changes
   new MutationObserver(() => {
     if (isAdPlaying()) return;
     const v = document.querySelector('video');
@@ -55,8 +53,6 @@
       skipButtonText: null,
     };
 
-    // If an ad is showing, use lastKnownTime (captured before ad started)
-    // getCurrentTime() during an ad returns AD time, not content time — wrong!
     let contentTime = null;
     if (isAdPlaying()) {
       if (lastKnownTime > 0) contentTime = lastKnownTime;
@@ -74,14 +70,12 @@
     }
 
     const v = document.querySelector('video');
-
     if (v) {
       info.videoTime = contentTime;
       info.adVideoSrc = v.src || v.currentSrc || null;
       info.adDuration = v.duration && isFinite(v.duration) ? Math.floor(v.duration) : null;
     }
 
-    // Advertiser name from DOM
     const advSelectors = [
       '.ytp-ad-player-overlay-layout__advertiser',
       '.ytp-ad-text',
@@ -97,19 +91,16 @@
       }
     }
 
-    // Skip button text
     const skipBtn = document.querySelector('.ytp-skip-ad-button, .ytp-ad-skip-button, .ytp-ad-skip-button-modern');
     if (skipBtn) {
       info.skipAvailable = true;
       info.skipButtonText = skipBtn.textContent.trim().slice(0, 50);
     }
 
-    // Try to extract ad ID from video src or page
     if (info.adVideoSrc) {
       try {
         const u = new URL(info.adVideoSrc);
         info.adId = u.searchParams.get('adurl') || u.searchParams.get('adid') || u.searchParams.get('id') || null;
-        // googlevideo ad URLs often have the ad ID in the path
         if (!info.adId) {
           const m = info.adVideoSrc.match(/\/([^/]+)\.mp4/);
           if (m) info.adId = m[1].slice(0, 40);
@@ -117,7 +108,6 @@
       } catch (e) {}
     }
 
-    // Also check for ad metadata in window.ytInitialPlayerResponse
     try {
       const pr = window.ytInitialPlayerResponse;
       if (pr && pr.adPlacements) {
@@ -158,7 +148,8 @@
   const RELOAD_COOLDOWN = 3000;
   const MAX_RELOADS = 3;
   let reloadCount = 0;
-  const POST_RELOAD_GRACE = 15000; // ignore ads for 15s after a reload (prevents loops)
+  let tabSwitchAttempts = 0;
+  const POST_RELOAD_GRACE = 15000;
 
   function recentlyReloaded() {
     try {
@@ -170,8 +161,6 @@
 
   function handleAd() {
     if (reloadPending) return;
-    // Grace period after a reload — YouTube often serves the same ad again,
-    // which would cause an infinite reload loop. Wait it out.
     if (recentlyReloaded()) return;
     const now = Date.now();
     if (now - lastAdCheck < RELOAD_COOLDOWN) return;
@@ -184,7 +173,6 @@
     const vid = adInfo.videoId;
 
     if (reloadCount < MAX_RELOADS) {
-      // Strategy 1: Reload page (works ~90% of the time after 1-2 reloads)
       reloadCount++;
       saveAdEvent({ ...adInfo, action: 'reloaded', reloadedAt: Date.now(), attempt: reloadCount });
       if (t !== null && t > 0 && vid) {
@@ -204,20 +192,34 @@
         reloadPending = true;
         location.reload();
       }
-    } else {
-      // Strategy 2: Auto tab-switch (George's discovery, now automated)
-      // Switch to a helper tab for 4s, then back — Chrome throttles the
-      // original tab, letting the ad state settle without a manual switch.
+    } else if (tabSwitchAttempts < 1) {
+      tabSwitchAttempts++;
       LOG('Max reloads reached — auto tab-switch escape');
       saveAdEvent({ ...adInfo, action: 'auto_tab_switch', reloadedAt: Date.now() });
+      reloadPending = true;
       try { chrome.runtime.sendMessage({ type: 'escape-loop' }, (resp) => {
         LOG('Tab-switch done:', resp);
-        // After returning, reset and re-check
+        reloadPending = false;
         reloadCount = 0;
         try { sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now())); } catch (e) {}
         setTimeout(() => { if (!isAdPlaying()) handleAd(); }, 1000);
-      }); } catch (e) { LOG('sendMessage error:', e); }
-      reloadPending = true;
+      }); } catch (e) {
+        LOG('sendMessage error:', e);
+        reloadPending = false;
+      }
+    } else {
+      // Strategy 3: Redirect to yout-ube.com
+      if (vid) {
+        const youtUrl = 'https://www.yout-ube.com/watch?v=' + vid + (t > 0 ? '&t=' + t + 's' : '') + '&loop=0&autoplay=1';
+        LOG('All strategies exhausted, redirecting to yout-ube.com:', youtUrl);
+        saveAdEvent({ ...adInfo, action: 'redirected_to_yout_ube', reloadedAt: Date.now() });
+        reloadPending = true;
+        location.replace(youtUrl);
+      } else {
+        LOG('No video ID, waiting for ad to finish');
+        reloadPending = false;
+        reloadCount = 0;
+      }
     }
   }
 
@@ -227,8 +229,7 @@
   }, 2000);
 
   // When the tab regains focus after being backgrounded, reset the reload
-  // counter and re-evaluate. Chrome throttles background tabs, which often
-  // lets the ad state settle — George's discovery: switch tabs, then back.
+  // counter and re-evaluate.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       reloadCount = 0;
@@ -237,7 +238,7 @@
     }
   });
 
-  // ---- Post-reload: seek to saved time if needed ----
+  // ---- Post-reload: seek to saved time ----
   function restoreAfterReload() {
     try {
       const savedTime = sessionStorage.getItem('yt-ad-reloader-time');
@@ -251,7 +252,6 @@
         let attempts = 0;
         const seek = () => {
           attempts++;
-          // Try YouTube player API first
           try {
             const player = document.querySelector('#movie_player');
             if (player && typeof player.seekTo === 'function') {
@@ -259,11 +259,8 @@
               LOG('Seeked via player API to', t);
             }
           } catch (e) {}
-          // Also set video element directly
           try { v.currentTime = t; } catch (e) {}
-          // Play
           v.play().catch(() => {});
-          // Verify after a short delay; retry if not close
           setTimeout(() => {
             if (Math.abs(v.currentTime - t) > 3 && attempts < 5) {
               LOG('Seek drift, retrying... (attempt', attempts, ')');
@@ -279,7 +276,6 @@
           seek();
         } else {
           v.addEventListener('loadedmetadata', seek, { once: true });
-          // Fallback if loadedmetadata never fires
           setTimeout(() => { if (v.readyState < 2) seek(); }, 3000);
         }
       }
