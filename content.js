@@ -141,6 +141,8 @@
   let lastAdCheck = 0;
   const CHECK_INTERVAL = 500;
   const RELOAD_COOLDOWN = 3000;
+  const MAX_RELOADS = 3;
+  let reloadCount = 0;
 
   function handleAd() {
     if (reloadPending) return;
@@ -151,28 +153,49 @@
     const adInfo = captureAdInfo();
     LOG('Ad detected!', adInfo.advertiser, 'videoTime:', adInfo.videoTime);
 
-    // Save the ad event
-    saveAdEvent({ ...adInfo, action: 'reloaded', reloadedAt: Date.now() });
-
     const t = adInfo.videoTime;
     const vid = adInfo.videoId;
 
-    if (t !== null && t > 0 && vid) {
-      try {
-        sessionStorage.setItem('yt-ad-reloader-time', String(t));
-        sessionStorage.setItem('yt-ad-reloader-vid', vid);
-      } catch (e) {}
-      const url = new URL(location.href);
-      url.searchParams.set('t', t + 's');
-      LOG('Reloading to', url.toString());
-      reloadPending = true;
-      location.replace(url.toString());
+    if (reloadCount < MAX_RELOADS) {
+      // Strategy 1: Reload page (works ~90% of the time after 1-2 reloads)
+      reloadCount++;
+      saveAdEvent({ ...adInfo, action: 'reloaded', reloadedAt: Date.now(), attempt: reloadCount });
+      if (t !== null && t > 0 && vid) {
+        try {
+          sessionStorage.setItem('yt-ad-reloader-time', String(t));
+          sessionStorage.setItem('yt-ad-reloader-vid', vid);
+        } catch (e) {}
+        const url = new URL(location.href);
+        url.searchParams.set('t', t + 's');
+        LOG('Reloading to', url.toString(), '(attempt', reloadCount, ')');
+        reloadPending = true;
+        location.replace(url.toString());
+      } else {
+        LOG('No timestamp, plain reload (attempt', reloadCount, ')');
+        reloadPending = true;
+        location.reload();
+      }
     } else {
-      LOG('No timestamp, plain reload');
-      reloadPending = true;
-      location.reload();
+      // Strategy 2: Redirect to yout-ube.com (ad-free mirror, no ads)
+      // loop=0 prevents the infinite replay issue
+      if (vid) {
+        const youtUrl = 'https://www.yout-ube.com/watch?v=' + vid + (t > 0 ? '&t=' + t + 's' : '') + '&loop=0&autoplay=1';
+        LOG('Max reloads reached, redirecting to yout-ube.com:', youtUrl);
+        saveAdEvent({ ...adInfo, action: 'redirected_to_yout_ube', reloadedAt: Date.now() });
+        reloadPending = true;
+        location.replace(youtUrl);
+      } else {
+        reloadCount = 0;
+        reloadPending = true;
+        location.reload();
+      }
     }
   }
+
+  // Reset reload count when an ad-free page loads
+  setInterval(() => {
+    if (!isAdPlaying()) reloadCount = 0;
+  }, 2000);
 
   // ---- Post-reload: seek to saved time if needed ----
   function restoreAfterReload() {

@@ -22,7 +22,14 @@ YouTube Punisher automates this: the moment an ad appears, it captures your exac
 
 ```
 Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp → Resume
+                    ↓ (if 3 reloads fail)
+              Redirect to yout-ube.com (ad-free mirror, no looping)
 ```
+
+### Two strategies
+
+1. **Reload** (primary) — reloads the page 1-3 times. YouTube re-evaluates ad serving on each reload; after 1-2 cycles the ad slot is empty and the video plays clean. Timestamp is preserved via `&t=Xs` URL param + JS seek.
+2. **yout-ube.com redirect** (fallback) — if reloads don't clear the ad after 3 attempts, redirects to `yout-ube.com` (an ad-free YouTube mirror). The URL includes `&loop=0` to prevent the infinite replay issue that the mirror has by default.
 
 1. **Detect** — watches for `.ad-showing` class, skip buttons, and ad overlays (every 500ms + MutationObserver)
 2. **Capture** — grabs `video.currentTime` and saves it to sessionStorage
