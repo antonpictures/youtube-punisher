@@ -20,6 +20,8 @@ YouTube serves an ad roughly every 60 seconds. You can't watch one minute of con
 
 ## Tips
 
+- **Auto escape:** after 3 reloads, the extension automatically switches to a helper tab for 4 seconds (George's discovery, now automated), then switches back. No manual tab switching needed.
+
 - **Ads keep coming after reload?** Switch to another tab for a few seconds, then switch back. Chrome throttles background tabs, which lets the ad state settle — George discovered this works every time.
 - **Incognito:** see the Incognito section above.
 

@@ -205,19 +205,19 @@
         location.reload();
       }
     } else {
-      // Strategy 2: Redirect to yout-ube.com (ad-free mirror, no ads)
-      // loop=0 prevents the infinite replay issue
-      if (vid) {
-        const youtUrl = 'https://www.yout-ube.com/watch?v=' + vid + (t > 0 ? '&t=' + t + 's' : '') + '&loop=0&autoplay=1';
-        LOG('Max reloads reached, redirecting to yout-ube.com:', youtUrl);
-        saveAdEvent({ ...adInfo, action: 'redirected_to_yout_ube', reloadedAt: Date.now() });
-        reloadPending = true;
-        location.replace(youtUrl);
-      } else {
+      // Strategy 2: Auto tab-switch (George's discovery, now automated)
+      // Switch to a helper tab for 4s, then back — Chrome throttles the
+      // original tab, letting the ad state settle without a manual switch.
+      LOG('Max reloads reached — auto tab-switch escape');
+      saveAdEvent({ ...adInfo, action: 'auto_tab_switch', reloadedAt: Date.now() });
+      try { chrome.runtime.sendMessage({ type: 'escape-loop' }, (resp) => {
+        LOG('Tab-switch done:', resp);
+        // After returning, reset and re-check
         reloadCount = 0;
-        reloadPending = true;
-        location.reload();
-      }
+        try { sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now())); } catch (e) {}
+        setTimeout(() => { if (!isAdPlaying()) handleAd(); }, 1000);
+      }); } catch (e) { LOG('sendMessage error:', e); }
+      reloadPending = true;
     }
   }
 
