@@ -57,25 +57,16 @@ Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp →
 2. Open `chrome://extensions`
 3. Enable **Developer mode** (top right)
 4. Click **Load unpacked** → select the `youtube-punisher` folder
-5. Done — activates on all YouTube pages automatically
+5. Done — activates on all YouTube pages automatically. ✅ **Tested**
 
-### Option B — Safari (requires Xcode)
-Safari extensions must be wrapped in a native macOS app. Xcode does this for you:
+### Option B — Safari (experimental: AppleScript workaround)
+Safari blocks ad-hoc signed extensions from auto-injecting into YouTube. As a workaround, use the JS overlay + AppleScript watcher (`yt-ad-watch.sh`):
 
-1. Install **Xcode** from the App Store (free)
-2. Run the converter:
-   ```bash
-   xcrun safari-web-extension-converter /path/to/youtube-punisher \\
-     --project-location ~/safari-youtube-punisher \\
-     --app-name "YouTube Punisher" \\
-     --bundle-identifier com.yourname.youtubepunisher
-   ```
-3. Open the generated `.xcodeproj` in Xcode
-4. Click **Run** (▶) to build and install
-5. Open Safari → **Settings → Extensions** → check **YouTube Punisher**
-6. Done — activates on all YouTube pages
+1. In Safari, enable: Safari → Settings → Advanced → **Show Develop menu in menu bar**
+2. In Safari (on a YouTube page), run `./yt-ad-watch.sh` in Terminal
+3. When an ad appears, the watcher detects it via MutationObserver (event-driven in the page), reloads with `&t=Xs`, and the MutationObserver re-detects on the next page load
 
-> **Note:** You need to re-build in Xcode after pulling updates. For distribution to others, an Apple Developer account ($99/yr) is required to sign the app.
+> **Note:** This is best-effort. Chrome is fully reliable; Safari works but may need manual testing.
 
 ### Option C — Download zip
 1. Download the latest release from [Releases](https://github.com/antonpictures/youtube-punisher/releases)
