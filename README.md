@@ -49,7 +49,7 @@ Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp →
 
 ## Install
 
-### Option A — Load unpacked (developer mode)
+### Option A — Chrome / Brave / Edge / Opera (Load unpacked)
 1. Clone the repo:
    ```bash
    git clone https://github.com/antonpictures/youtube-punisher.git
@@ -59,9 +59,27 @@ Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp →
 4. Click **Load unpacked** → select the `youtube-punisher` folder
 5. Done — activates on all YouTube pages automatically
 
-### Option B — Download zip
+### Option B — Safari (requires Xcode)
+Safari extensions must be wrapped in a native macOS app. Xcode does this for you:
+
+1. Install **Xcode** from the App Store (free)
+2. Run the converter:
+   ```bash
+   xcrun safari-web-extension-converter /path/to/youtube-punisher \\
+     --project-location ~/safari-youtube-punisher \\
+     --app-name "YouTube Punisher" \\
+     --bundle-identifier com.yourname.youtubepunisher
+   ```
+3. Open the generated `.xcodeproj` in Xcode
+4. Click **Run** (▶) to build and install
+5. Open Safari → **Settings → Extensions** → check **YouTube Punisher**
+6. Done — activates on all YouTube pages
+
+> **Note:** You need to re-build in Xcode after pulling updates. For distribution to others, an Apple Developer account ($99/yr) is required to sign the app.
+
+### Option C — Download zip
 1. Download the latest release from [Releases](https://github.com/antonpictures/youtube-punisher/releases)
-2. Unzip and follow steps 2–5 above
+2. Unzip and follow Option A steps 2–5
 
 ## The Ad History Database
 
