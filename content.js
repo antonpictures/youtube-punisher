@@ -26,9 +26,19 @@
     if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
       lastKnownTime = Math.floor(v.currentTime);
     }
+    // Also capture from URL on every tick
     const vid = new URLSearchParams(location.search).get('v');
     if (vid) lastKnownVid = vid;
-  }, 1000);
+  }, 500);
+
+  // Also track via mutation observer on video changes
+  new MutationObserver(() => {
+    if (isAdPlaying()) return;
+    const v = document.querySelector('video');
+    if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
+      lastKnownTime = Math.floor(v.currentTime);
+    }
+  }).observe(document.body, { childList: true, subtree: true, attributes: true });
 
   // ---- Capture ad metadata ----
   function captureAdInfo() {
