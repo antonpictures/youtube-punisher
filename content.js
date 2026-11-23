@@ -17,6 +17,19 @@
     return false;
   }
 
+  // ---- Track last known content time (updated when NOT in an ad) ----
+  let lastKnownTime = 0;
+  let lastKnownVid = null;
+  setInterval(() => {
+    if (isAdPlaying()) return;
+    const v = document.querySelector('video');
+    if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
+      lastKnownTime = Math.floor(v.currentTime);
+    }
+    const vid = new URLSearchParams(location.search).get('v');
+    if (vid) lastKnownVid = vid;
+  }, 1000);
+
   // ---- Capture ad metadata ----
   function captureAdInfo() {
     const info = {
@@ -32,9 +45,23 @@
       skipButtonText: null,
     };
 
+    // Try YouTube player API first (most accurate during ads)
+    let contentTime = null;
+    try {
+      const player = document.querySelector('#movie_player');
+      if (player && typeof player.getCurrentTime === 'function') {
+        const t = player.getCurrentTime();
+        if (t > 0 && isFinite(t)) contentTime = Math.floor(t);
+      }
+    } catch (e) {}
+    // Fall back to tracked time (captured before ad started)
+    if (contentTime === null && lastKnownTime > 0) contentTime = lastKnownTime;
+    // Last resort: video element (may be ad time, but better than nothing)
     const v = document.querySelector('video');
+    if (contentTime === null && v && v.currentTime > 0) contentTime = Math.floor(v.currentTime);
+
     if (v) {
-      info.videoTime = Math.floor(v.currentTime);
+      info.videoTime = contentTime;
       info.adVideoSrc = v.src || v.currentSrc || null;
       info.adDuration = v.duration && isFinite(v.duration) ? Math.floor(v.duration) : null;
     }
@@ -157,18 +184,40 @@
         const t = parseInt(savedTime, 10);
         LOG('Restoring playback to', t, 's');
         const v = document.querySelector('video');
-        if (v) {
-          const seek = () => {
-            if (v.readyState >= 2) {
-              v.currentTime = t;
-              v.play().catch(() => {});
+        if (!v) return;
+        let attempts = 0;
+        const seek = () => {
+          attempts++;
+          // Try YouTube player API first
+          try {
+            const player = document.querySelector('#movie_player');
+            if (player && typeof player.seekTo === 'function') {
+              player.seekTo(t, true);
+              LOG('Seeked via player API to', t);
+            }
+          } catch (e) {}
+          // Also set video element directly
+          try { v.currentTime = t; } catch (e) {}
+          // Play
+          v.play().catch(() => {});
+          // Verify after a short delay; retry if not close
+          setTimeout(() => {
+            if (Math.abs(v.currentTime - t) > 3 && attempts < 5) {
+              LOG('Seek drift, retrying... (attempt', attempts, ')');
+              seek();
+            } else {
+              LOG('Restored to', Math.floor(v.currentTime), 's');
               sessionStorage.removeItem('yt-ad-reloader-time');
               sessionStorage.removeItem('yt-ad-reloader-vid');
-            } else {
-              v.addEventListener('loadedmetadata', seek, { once: true });
             }
-          };
+          }, 1500);
+        };
+        if (v.readyState >= 2) {
           seek();
+        } else {
+          v.addEventListener('loadedmetadata', seek, { once: true });
+          // Fallback if loadedmetadata never fires
+          setTimeout(() => { if (v.readyState < 2) seek(); }, 3000);
         }
       }
     } catch (e) { LOG('restore error', e); }
