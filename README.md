@@ -45,15 +45,15 @@ Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp →
 ### Option A — Load unpacked (developer mode)
 1. Clone the repo:
    ```bash
-   git clone https://github.com/antonpictures/yt-ad-reloader.git
+   git clone https://github.com/antonpictures/youtube-punisher.git
    ```
 2. Open `chrome://extensions`
 3. Enable **Developer mode** (top right)
-4. Click **Load unpacked** → select the `yt-ad-reloader` folder
+4. Click **Load unpacked** → select the `youtube-punisher` folder
 5. Done — activates on all YouTube pages automatically
 
 ### Option B — Download zip
-1. Download the latest release from [Releases](https://github.com/antonpictures/yt-ad-reloader/releases)
+1. Download the latest release from [Releases](https://github.com/antonpictures/youtube-punisher/releases)
 2. Unzip and follow steps 2–5 above
 
 ## The Ad History Database
