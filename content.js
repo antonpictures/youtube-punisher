@@ -45,20 +45,25 @@
       skipButtonText: null,
     };
 
-    // Try YouTube player API first (most accurate during ads)
+    // If an ad is showing, use lastKnownTime (captured before ad started)
+    // getCurrentTime() during an ad returns AD time, not content time — wrong!
     let contentTime = null;
-    try {
-      const player = document.querySelector('#movie_player');
-      if (player && typeof player.getCurrentTime === 'function') {
-        const t = player.getCurrentTime();
-        if (t > 0 && isFinite(t)) contentTime = Math.floor(t);
-      }
-    } catch (e) {}
-    // Fall back to tracked time (captured before ad started)
-    if (contentTime === null && lastKnownTime > 0) contentTime = lastKnownTime;
-    // Last resort: video element (may be ad time, but better than nothing)
+    if (isAdPlaying()) {
+      if (lastKnownTime > 0) contentTime = lastKnownTime;
+    } else {
+      try {
+        const player = document.querySelector('#movie_player');
+        if (player && typeof player.getCurrentTime === 'function') {
+          const t = player.getCurrentTime();
+          if (t > 0 && isFinite(t)) contentTime = Math.floor(t);
+        }
+      } catch (e) {}
+      if (contentTime === null && lastKnownTime > 0) contentTime = lastKnownTime;
+      const v0 = document.querySelector('video');
+      if (contentTime === null && v0 && v0.currentTime > 0) contentTime = Math.floor(v0.currentTime);
+    }
+
     const v = document.querySelector('video');
-    if (contentTime === null && v && v.currentTime > 0) contentTime = Math.floor(v.currentTime);
 
     if (v) {
       info.videoTime = contentTime;
