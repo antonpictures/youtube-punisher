@@ -1,13 +1,13 @@
 {
   "manifest_version": 3,
-  "name": "YouTube Ad Reloader",
-  "version": "1.0.0",
-  "description": "Auto-reloads YouTube pages when an ad plays, preserving your playback position.",
+  "name": "YouTube Punisher",
+  "version": "1.1.0",
+  "description": "Auto-reloads YouTube pages when an ad plays, preserving your playback position. Punish the ads.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://www.youtube.com/*", "https://youtube.com/*", "https://m.youtube.com/*"],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "YouTube Ad Reloader — History"
+    "default_title": "YouTube Punisher — Ad History"
   },
   "content_scripts": [
     {

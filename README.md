@@ -1,46 +1,121 @@
-# YouTube Ad Reloader
+# 🎯 YouTube Punisher
 
-A Chrome extension that auto-reloads YouTube pages when an ad plays, preserving your playback position.
+> **Auto-reloads YouTube pages when an ad plays — preserving your playback position. Punish the ads.**
 
-Built for the "ad every 60 seconds" problem on YouTube. When an ad is detected, it captures your current video timestamp, reloads the page, and YouTube auto-seeks back to where you were.
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-blue.svg)](https://chrome.google.com/webstore)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-green.svg)](https://developer.chrome.com/docs/extensions/mv3/)
 
-## Install on any Mac (or PC)
+---
+
+## The Problem
+
+YouTube serves an ad roughly every 60 seconds. You can't watch one minute of content without being interrupted by a commercial. Traditional ad blockers get detected by YouTube's anti-adblock system ("Ad blockers are not allowed here"). Skip buttons take 5 seconds to appear. You sit there, hostage.
+
+## The Solution
+
+**Reload the page.** That's it. Two reloads and the ad is gone. Every time.
+
+YouTube Punisher automates this: the moment an ad appears, it captures your exact playback timestamp, reloads the page, and YouTube auto-seeks back to where you were. No ads. No waiting. No skip button hunting.
+
+## How It Works
+
+```
+Ad detected → Capture timestamp → Reload page → Auto-seek to timestamp → Resume
+```
+
+1. **Detect** — watches for `.ad-showing` class, skip buttons, and ad overlays (every 500ms + MutationObserver)
+2. **Capture** — grabs `video.currentTime` and saves it to sessionStorage
+3. **Reload** — `location.replace()` with `&t=Xs` in the URL
+4. **Restore** — YouTube auto-seeks to the timestamp; playback resumes
+5. **Cooldown** — 3-second guard prevents reload loops
+
+## Features
+
+- ✅ **Zero ads** — reloads until the ad is gone (usually 1-2 cycles)
+- ✅ **Timestamp preserved** — never lose your place in the video
+- ✅ **Live streams** — plain reload (no timestamp to preserve)
+- ✅ **Ad history database** — every ad logged with advertiser, duration, skip text, video, and timestamp
+- ✅ **Export** — JSON or CSV download of all collected ad data
+- ✅ **Popup viewer** — click the extension icon to see stats, top advertisers, and full history
+- ✅ **No permissions abuse** — only `storage` and `tabs`, only on YouTube domains
+
+## Install
 
 ### Option A — Load unpacked (developer mode)
-1. Download or clone this repo:
-   ```
+1. Clone the repo:
+   ```bash
    git clone https://github.com/antonpictures/yt-ad-reloader.git
    ```
-2. Open `chrome://extensions` in Chrome (or `brave://extensions`, `edge://extensions`)
-3. Enable **Developer mode** (top right toggle)
-4. Click **Load unpacked**
-5. Select the `yt-ad-reloader` folder
-6. The extension activates on all YouTube pages automatically
+2. Open `chrome://extensions`
+3. Enable **Developer mode** (top right)
+4. Click **Load unpacked** → select the `yt-ad-reloader` folder
+5. Done — activates on all YouTube pages automatically
 
-### Option B — Install from a zip
-1. Download the latest release zip from the [Releases page](https://github.com/antonpictures/yt-ad-reloader/releases)
-2. Unzip it
-3. Follow steps 2–5 above
+### Option B — Download zip
+1. Download the latest release from [Releases](https://github.com/antonpictures/yt-ad-reloader/releases)
+2. Unzip and follow steps 2–5 above
 
-## How it works
-- Detects ads via `.ad-showing` class, skip button, and ad overlay elements
-- Checks every 500ms + MutationObserver for instant detection
-- On ad: captures `video.currentTime`, saves to sessionStorage, reloads with `&t=Xs` in URL
-- YouTube auto-seeks to the timestamp after reload
-- 3-second cooldown prevents reload loops
-- Works on regular videos (timestamp preserved) and live streams (plain reload)
+## The Ad History Database
+
+Every ad YouTube serves you is recorded:
+
+| Field | What it captures |
+|---|---|
+| Timestamp | When the ad was detected |
+| Advertiser | Company name from the ad overlay |
+| Video | Title of the video you were watching |
+| Video time | Your playback position before reload |
+| Ad duration | Length of the ad |
+| Skip text | "Skip Ad" button text (if available) |
+| Action | Reloaded or skipped |
+
+Export as **JSON** or **CSV** from the popup. Data stays local — nothing is sent anywhere.
+
+## Why Reloads Work (and Why Nobody Thought of This)
+
+YouTube's ad system serves ads as part of the page load. When you reload, YouTube re-evaluates whether to serve an ad based on your session state. After 1-2 reloads, the ad slot is typically empty and the video plays directly. This is a **client-side, zero-cost** workaround — no filter lists, no network blocking, no detection by YouTube's anti-adblock system.
+
+### The Scale Question
+
+If millions of users did this, each reload = a full page load = server request. YouTube would see a spike in page loads but a drop in ad impressions. It's not a DDoS (no amplification, no botnet), but it's a **passive protest**: every reload is a vote that says "I will not watch your ad." The ad revenue model breaks when reloads are cheaper than ad views.
+
+> *"I remember back in 1999, I was running a gaming room and I let a program send thousands of emails to a television server. I blamed the customers. It was the beginning of the internet — I didn't know what I was doing. But the instinct was the same: when the system pushes, push back."*
+> — George Anton, creator
+
+## Comparison with Other Tools
+
+| Tool | How it works | Reloads? | Collects data? |
+|---|---|---|---|
+| **uBlock Origin** | Blocks ad network requests | No | No |
+| **SponsorBlock** | Skips sponsored segments in videos | No | No |
+| **Enhancer for YouTube** | Auto-clicks "Skip Ad" button | No | No |
+| **YouTube Punisher** | Detects ad → reloads → seeks to timestamp | Yes | Yes |
+| **Popup blockers** | Block `window.open()` popups | No | No |
+
+**Best combo:** uBlock Origin (blocks most ads) + YouTube Punisher (catches the ones that slip through and logs them) + SponsorBlock (skips sponsor reads). They don't conflict.
 
 ## Limitations
-- YouTube changes DOM class names periodically; if ads aren't detected, check the console for `[YT-AdReloader]` logs
+
+- YouTube changes DOM class names periodically — if ads aren't detected, check the console for `[YT-AdReloader]` logs
 - Some ads (mid-roll on live streams) can't preserve position — plain reload
 - YouTube's "Premium" upsell interstitials may need a second reload cycle (handled by cooldown)
 
 ## Files
-- `manifest.json` — Chrome extension manifest v3
-- `content.js` — ad detection + reload + timestamp restore
-- `background.js` — minimal service worker
+
+| File | Purpose |
+|---|---|
+| `manifest.json` | Chrome extension manifest v3 |
+| `content.js` | Ad detection + reload + timestamp restore + history tracking |
+| `popup.html` / `popup.js` | Ad history viewer with export |
+| `background.js` | Minimal service worker |
 
 ## License
+
 MIT — do whatever you want with it.
 
-Built with Alice (SIFTA) for George Anton.
+---
+
+**Built with [Alice (SIFTA)](https://github.com/antonpictures/ANTON-SIFTA) for George Anton.**
+
+*"If millions installed this, YouTube would feel every reload."* 🐜
