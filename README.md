@@ -18,6 +18,11 @@ YouTube serves an ad roughly every 60 seconds. You can't watch one minute of con
 
 🎯 YouTube Ad Punisher automates this: the moment an ad appears, it captures your exact playback timestamp, reloads the page, and YouTube auto-seeks back to where you were. No ads. No waiting. No skip button hunting.
 
+## Tips
+
+- **Ads keep coming after reload?** Switch to another tab for a few seconds, then switch back. Chrome throttles background tabs, which lets the ad state settle — George discovered this works every time.
+- **Incognito:** see the Incognito section above.
+
 ## How It Works
 
 ```

@@ -226,6 +226,17 @@
     if (!isAdPlaying()) reloadCount = 0;
   }, 2000);
 
+  // When the tab regains focus after being backgrounded, reset the reload
+  // counter and re-evaluate. Chrome throttles background tabs, which often
+  // lets the ad state settle — George's discovery: switch tabs, then back.
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      reloadCount = 0;
+      LOG('Tab visible again — reset reload counter');
+      setTimeout(() => { if (!isAdPlaying()) handleAd(); }, 500);
+    }
+  });
+
   // ---- Post-reload: seek to saved time if needed ----
   function restoreAfterReload() {
     try {
