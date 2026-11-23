@@ -1,4 +1,4 @@
-# 🎯 YouTube Punisher
+# 🎯 YouTube Ad Punisher
 
 > **Auto-reloads YouTube pages when an ad plays — preserving your playback position. Punish the ads.**
 
@@ -16,7 +16,7 @@ YouTube serves an ad roughly every 60 seconds. You can't watch one minute of con
 
 **Reload the page.** That's it. Two reloads and the ad is gone. Every time.
 
-YouTube Punisher automates this: the moment an ad appears, it captures your exact playback timestamp, reloads the page, and YouTube auto-seeks back to where you were. No ads. No waiting. No skip button hunting.
+🎯 YouTube Ad Punisher automates this: the moment an ad appears, it captures your exact playback timestamp, reloads the page, and YouTube auto-seeks back to where you were. No ads. No waiting. No skip button hunting.
 
 ## How It Works
 
@@ -106,10 +106,10 @@ If millions of users did this, each reload = a full page load = server request. 
 | **uBlock Origin** | Blocks ad network requests | No | No |
 | **SponsorBlock** | Skips sponsored segments in videos | No | No |
 | **Enhancer for YouTube** | Auto-clicks "Skip Ad" button | No | No |
-| **YouTube Punisher** | Detects ad → reloads → seeks to timestamp | Yes | Yes |
+| **🎯 YouTube Ad Punisher** | Detects ad → reloads → seeks to timestamp | Yes | Yes |
 | **Popup blockers** | Block `window.open()` popups | No | No |
 
-**Best combo:** uBlock Origin (blocks most ads) + YouTube Punisher (catches the ones that slip through and logs them) + SponsorBlock (skips sponsor reads). They don't conflict.
+**Best combo:** uBlock Origin (blocks most ads) + 🎯 YouTube Ad Punisher (catches the ones that slip through and logs them) + SponsorBlock (skips sponsor reads). They don't conflict.
 
 ## Limitations
 
