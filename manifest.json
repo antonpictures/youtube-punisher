@@ -5,6 +5,10 @@
   "description": "Auto-reloads YouTube pages when an ad plays, preserving your playback position.",
   "permissions": ["storage", "tabs"],
   "host_permissions": ["https://www.youtube.com/*", "https://youtube.com/*", "https://m.youtube.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "YouTube Ad Reloader — History"
+  },
   "content_scripts": [
     {
       "matches": ["https://www.youtube.com/*", "https://youtube.com/*", "https://m.youtube.com/*"],

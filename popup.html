@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>YT Ad Reloader — History</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width: 420px; max-height: 600px; font-family: -apple-system, sans-serif; background: #1a1a1a; color: #eee; font-size: 13px; }
+  header { padding: 12px 16px; background: #222; border-bottom: 1px solid #333; display: flex; justify-content: space-between; align-items: center; }
+  header h1 { font-size: 15px; font-weight: 600; }
+  header span { font-size: 11px; color: #888; }
+  .actions { padding: 8px 16px; display: flex; gap: 8px; border-bottom: 1px solid #333; }
+  .actions button { padding: 4px 10px; background: #333; color: #eee; border: 1px solid #555; border-radius: 4px; cursor: pointer; font-size: 12px; }
+  .actions button:hover { background: #444; }
+  .actions button.danger { border-color: #a33; color: #f66; }
+  #stats { padding: 8px 16px; font-size: 12px; color: #aaa; border-bottom: 1px solid #333; }
+  #list { overflow-y: auto; max-height: 480px; }
+  .entry { padding: 10px 16px; border-bottom: 1px solid #2a2a2a; }
+  .entry:hover { background: #252525; }
+  .entry .row1 { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .entry .adv { font-weight: 600; color: #ff6b6b; }
+  .entry .time { color: #888; font-size: 11px; }
+  .entry .video { color: #aaa; font-size: 11px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .entry .meta { color: #666; font-size: 10px; margin-top: 2px; }
+  .empty { padding: 40px 16px; text-align: center; color: #666; }
+  .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px; }
+  .badge.reload { background: #4a2; color: #fff; }
+  .badge.skip { background: #a63; color: #fff; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Ad History</h1>
+  <span id="count">0 ads</span>
+</header>
+<div class="actions">
+  <button id="export">Export JSON</button>
+  <button id="exportCsv">Export CSV</button>
+  <button id="clear" class="danger">Clear All</button>
+</div>
+<div id="stats"></div>
+<div id="list"><div class="empty">No ads recorded yet.</div></div>
+<script src="popup.js"></script>
+</body>
+</html>
