@@ -158,9 +158,21 @@
   const RELOAD_COOLDOWN = 3000;
   const MAX_RELOADS = 3;
   let reloadCount = 0;
+  const POST_RELOAD_GRACE = 15000; // ignore ads for 15s after a reload (prevents loops)
+
+  function recentlyReloaded() {
+    try {
+      const ts = sessionStorage.getItem('yt-ad-reloader-reloadts');
+      if (ts && Date.now() - parseInt(ts, 10) < POST_RELOAD_GRACE) return true;
+    } catch (e) {}
+    return false;
+  }
 
   function handleAd() {
     if (reloadPending) return;
+    // Grace period after a reload — YouTube often serves the same ad again,
+    // which would cause an infinite reload loop. Wait it out.
+    if (recentlyReloaded()) return;
     const now = Date.now();
     if (now - lastAdCheck < RELOAD_COOLDOWN) return;
     lastAdCheck = now;
@@ -179,6 +191,7 @@
         try {
           sessionStorage.setItem('yt-ad-reloader-time', String(t));
           sessionStorage.setItem('yt-ad-reloader-vid', vid);
+          sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now()));
         } catch (e) {}
         const url = new URL(location.href);
         url.searchParams.set('t', t + 's');
@@ -187,6 +200,7 @@
         location.replace(url.toString());
       } else {
         LOG('No timestamp, plain reload (attempt', reloadCount, ')');
+        try { sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now())); } catch (e) {}
         reloadPending = true;
         location.reload();
       }

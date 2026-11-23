@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "🎯 YouTube Ad Punisher",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Auto-reloads YouTube pages when an ad plays, preserving your playback position. Punish the ads.",
   "permissions": [
     "storage",
