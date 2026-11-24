@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{width:1280px;height:800px;background:radial-gradient(circle at 50% 0%,#2a2a2a,#111);font-family:-apple-system,"Segoe UI",sans-serif;color:#eee;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.stage{display:flex;align-items:center;gap:70px}
+.left{width:420px}
+.badge{display:inline-block;background:#ff5a3c;color:#fff;font-weight:700;font-size:13px;letter-spacing:.06em;padding:6px 12px;border-radius:6px;margin-bottom:18px}
+h1{font-size:46px;line-height:1.05;letter-spacing:-.02em;margin-bottom:16px}
+h1 .em{color:#ff6b6b}
+p.desc{font-size:17px;color:#bbb;line-height:1.5;margin-bottom:26px}
+.feat{font-size:15px;color:#ddd;line-height:2}
+.feat span{color:#7ddc6b;margin-right:8px}
+.popup{width:400px;background:#1a1a1a;border:1px solid #333;border-radius:10px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}
+header{padding:14px 18px;background:#222;border-bottom:1px solid #333;display:flex;justify-content:space-between;align-items:center}
+header h2{font-size:16px;font-weight:600}
+header span{font-size:12px;color:#888}
+.actions{padding:10px 18px;display:flex;gap:8px;border-bottom:1px solid #333}
+.actions button{padding:5px 11px;background:#333;color:#eee;border:1px solid #555;border-radius:4px;font-size:12px}
+#stats{padding:10px 18px;font-size:12px;color:#aaa;border-bottom:1px solid #333}
+.entry{padding:11px 18px;border-bottom:1px solid #2a2a2a}
+.entry .row1{display:flex;justify-content:space-between;margin-bottom:4px}
+.adv{font-weight:600;color:#ff6b6b}
+.time{color:#888;font-size:11px}
+.video{color:#aaa;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge2{display:inline-block;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:6px;background:#4a2;color:#fff}
+</style></head><body>
+<div class="stage">
+  <div class="left">
+    <span class="badge">CHROME EXTENSION</span>
+    <h1>🎯 YouTube<br><span class="em">Ad Punisher</span></h1>
+    <p class="desc">An ad plays. One reload. You're back exactly where you were — with zero waiting.</p>
+    <div class="feat">
+      <div><span>✓</span>Reloads instantly on ad detect</div>
+      <div><span>✓</span>Playback position preserved</div>
+      <div><span>✓</span>Ad history + JSON/CSV export</div>
+      <div><span>✓</span>Local only — nothing sent anywhere</div>
+    </div>
+  </div>
+  <div class="popup">
+    <header><h2>Ad History</h2><span id="count">12 ads</span></header>
+    <div class="actions"><button>Export JSON</button><button>Export CSV</button><button>Clear All</button></div>
+    <div id="stats">12 ads detected · 11 reloaded · 1 skipped</div>
+    <div class="entry"><div class="row1"><span class="adv">Nike</span><span class="time">2m ago</span></div><div class="video">How I Built a Cabin in the Woods</div><span class="badge2">RELOADED</span></div>
+    <div class="entry"><div class="row1"><span class="adv">Squarespace</span><span class="time">8m ago</span></div><div class="video">The Ocean's Hidden Giants</div><span class="badge2">RELOADED</span></div>
+    <div class="entry"><div class="row1"><span class="adv">State Farm</span><span class="time">21m ago</span></div><div class="video">A First Look at the New City</div><span class="badge2">RELOADED</span></div>
+    <div class="entry"><div class="row1"><span class="adv">Amazon</span><span class="time">34m ago</span></div><div class="video">Cooking With My Grandmother</div><span class="badge2">SKIPPED</span></div>
+  </div>
+</div>
+</body></html>
