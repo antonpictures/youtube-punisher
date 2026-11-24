@@ -25,7 +25,9 @@ Reloads YouTube when an ad plays, restoring your exact spot. Ad history stays lo
 
 **Description (≤16,384 chars):**
 ```
-Tired of sitting through the same ad before every video? 🎯 YouTube Ad Punisher reloads the page the moment an ad starts, then drops you back exactly where you were. Usually one or two reloads and the ad slot is empty. No skip button hunting. No waiting five seconds.
+I don't want to watch any YouTube ads right now. 🎯 YouTube Ad Punisher reloads the page the moment an ad starts, then drops you back exactly where you were. Usually one or two reloads and the ad slot is empty. No skip button hunting. No waiting five seconds.
+
+"Every reload is a vote: I will not watch your ad." — George Anton, creator
 
 HOW IT WORKS
 • Detects the ad overlay on YouTube

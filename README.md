@@ -103,7 +103,7 @@ YouTube's ad system serves ads as part of the page load. When you reload, YouTub
 
 If millions of users did this, each reload = a full page load = server request. YouTube would see a spike in page loads but a drop in ad impressions. It's not a DDoS (no amplification, no botnet), but it's a **passive protest**: every reload is a vote that says "I will not watch your ad." The ad revenue model breaks when reloads are cheaper than ad views.
 
-> *"I remember back in 1999, I was running a gaming room and I let a program send thousands of emails to a television server. I blamed the customers. It was the beginning of the internet — I didn't know what I was doing. But the instinct was the same: when the system pushes, push back."*
+> *"Every reload is a vote: I will not watch your ad."*
 > — George Anton, creator
 
 ## Comparison with Other Tools
