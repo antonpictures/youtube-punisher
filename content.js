@@ -144,12 +144,12 @@
   // ---- Reload with timestamp preservation ----
   let reloadPending = false;
   let lastAdCheck = 0;
-  const CHECK_INTERVAL = 500;
-  const RELOAD_COOLDOWN = 3000;
+  const CHECK_INTERVAL = 150;
+  const RELOAD_COOLDOWN = 1200;
   const MAX_RELOADS = 3;
   let reloadCount = 0;
   let tabSwitchAttempts = 0;
-  const POST_RELOAD_GRACE = 15000;
+  const POST_RELOAD_GRACE = 2500;
 
   function recentlyReloaded() {
     try {
