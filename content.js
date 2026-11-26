@@ -27,7 +27,10 @@
       lastKnownTime = Math.floor(v.currentTime);
     }
     const vid = new URLSearchParams(location.search).get('v');
-    if (vid) lastKnownVid = vid;
+    if (vid && vid !== lastKnownVid) {
+      lastKnownVid = vid;
+      lastKnownTime = 0;   // never carry a position across videos
+    }
   }, 500);
 
   new MutationObserver(() => {
@@ -269,6 +272,15 @@
               LOG('Restored to', Math.floor(v.currentTime), 's');
               sessionStorage.removeItem('yt-ad-reloader-time');
               sessionStorage.removeItem('yt-ad-reloader-vid');
+              // Leave no t= in the address bar: copied/reopened links start at 0.
+              try {
+                const clean = new URL(location.href);
+                if (clean.searchParams.has('t')) {
+                  clean.searchParams.delete('t');
+                  history.replaceState(null, '', clean.toString());
+                  LOG('Cleaned t= from URL');
+                }
+              } catch (e) {}
             }
           }, 1500);
         };
