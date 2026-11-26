@@ -10,7 +10,7 @@
 
 ## The Problem
 
-YouTube serves an ad roughly every 60 seconds. You can't watch one minute of content without being interrupted by a commercial. Traditional ad blockers get detected by YouTube's anti-adblock system ("Ad blockers are not allowed here"). Skip buttons take 5 seconds to appear. You sit there, hostage.
+Ad density on YouTube is channel-dependent and changes over time — some channels front-load several ads, others run none. Traditional ad blockers can get detected by YouTube's anti-adblock system ("Ad blockers are not allowed here"), and the skip button takes a few seconds to appear. You sit there, hostage.
 
 ## The Solution
 
