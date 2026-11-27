@@ -20,26 +20,22 @@
   // ---- Track last known content time ----
   let lastKnownTime = 0;
   let lastKnownVid = null;
-  setInterval(() => {
-    if (isAdPlaying()) return;
-    const v = document.querySelector('video');
-    if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
-      lastKnownTime = Math.floor(v.currentTime);
-    }
-    const vid = new URLSearchParams(location.search).get('v');
-    if (vid && vid !== lastKnownVid) {
+  function trackContentTime() {
+    const vid = currentVideoId();
+    if (vid !== lastKnownVid) {
       lastKnownVid = vid;
-      lastKnownTime = 0;   // never carry a position across videos
+      lastKnownTime = 0;
     }
-  }, 500);
-
-  new MutationObserver(() => {
     if (isAdPlaying()) return;
     const v = document.querySelector('video');
     if (v && v.currentTime > 0 && isFinite(v.currentTime)) {
       lastKnownTime = Math.floor(v.currentTime);
     }
-  }).observe(document.body, { childList: true, subtree: true, attributes: true });
+  }
+
+  setInterval(trackContentTime, 500);
+  new MutationObserver(trackContentTime)
+    .observe(document.body, { childList: true, subtree: true, attributes: true });
 
   // ---- Capture ad metadata ----
   function captureAdInfo() {
@@ -58,7 +54,7 @@
 
     let contentTime = null;
     if (isAdPlaying()) {
-      if (lastKnownTime > 0) contentTime = lastKnownTime;
+      if (info.videoId === lastKnownVid && lastKnownTime > 0) contentTime = lastKnownTime;
     } else {
       try {
         const player = document.querySelector('#movie_player');
@@ -150,16 +146,16 @@
   const CHECK_INTERVAL = 150;
   const RELOAD_COOLDOWN = 1200;
   const MAX_RELOADS = 3;
-  let reloadCount = 0;
-  let tabSwitchAttempts = 0;
   const POST_RELOAD_GRACE = 2500;
+  const retryState = YTAdReloaderRetryState.createRetryState(sessionStorage);
+
+  function currentVideoId() {
+    return new URLSearchParams(location.search).get('v');
+  }
 
   function recentlyReloaded() {
-    try {
-      const ts = sessionStorage.getItem('yt-ad-reloader-reloadts');
-      if (ts && Date.now() - parseInt(ts, 10) < POST_RELOAD_GRACE) return true;
-    } catch (e) {}
-    return false;
+    const state = retryState.read(currentVideoId());
+    return state.lastReloadAt > 0 && Date.now() - state.lastReloadAt < POST_RELOAD_GRACE;
   }
 
   function handleAd() {
@@ -172,40 +168,35 @@
     const adInfo = captureAdInfo();
     LOG('Ad detected!', adInfo.advertiser, 'videoTime:', adInfo.videoTime);
 
-    const t = adInfo.videoTime;
+    const savedState = retryState.read(adInfo.videoId);
+    // On a repeated pre-roll page the video element may expose the ad's time,
+    // not the content time. Keep the last known content position instead.
+    const t = savedState.playbackTime ?? adInfo.videoTime;
     const vid = adInfo.videoId;
 
-    if (reloadCount < MAX_RELOADS) {
-      reloadCount++;
-      saveAdEvent({ ...adInfo, action: 'reloaded', reloadedAt: Date.now(), attempt: reloadCount });
+    if (savedState.reloadCount < MAX_RELOADS) {
+      const state = retryState.recordReload(vid, t);
+      saveAdEvent({ ...adInfo, action: 'reloaded', reloadedAt: Date.now(), attempt: state.reloadCount });
       if (t !== null && t > 0 && vid) {
-        try {
-          sessionStorage.setItem('yt-ad-reloader-time', String(t));
-          sessionStorage.setItem('yt-ad-reloader-vid', vid);
-          sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now()));
-        } catch (e) {}
         const url = new URL(location.href);
         url.searchParams.set('t', t + 's');
-        LOG('Reloading to', url.toString(), '(attempt', reloadCount, ')');
+        LOG('Reloading to', url.toString(), '(attempt', state.reloadCount, ')');
         reloadPending = true;
         location.replace(url.toString());
       } else {
-        LOG('No timestamp, plain reload (attempt', reloadCount, ')');
-        try { sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now())); } catch (e) {}
+        LOG('No timestamp, plain reload (attempt', state.reloadCount, ')');
         reloadPending = true;
         location.reload();
       }
-    } else if (tabSwitchAttempts < 1) {
-      tabSwitchAttempts++;
+    } else if (savedState.tabSwitchAttempts < 1) {
+      retryState.recordTabSwitch(vid);
       LOG('Max reloads reached — auto tab-switch escape');
       saveAdEvent({ ...adInfo, action: 'auto_tab_switch', reloadedAt: Date.now() });
       reloadPending = true;
       try { chrome.runtime.sendMessage({ type: 'escape-loop' }, (resp) => {
         LOG('Tab-switch done:', resp);
         reloadPending = false;
-        reloadCount = 0;
-        try { sessionStorage.setItem('yt-ad-reloader-reloadts', String(Date.now())); } catch (e) {}
-        setTimeout(() => { if (!isAdPlaying()) handleAd(); }, 1000);
+        setTimeout(() => { if (isAdPlaying()) handleAd(); }, 1000);
       }); } catch (e) {
         LOG('sendMessage error:', e);
         reloadPending = false;
@@ -221,83 +212,70 @@
       } else {
         LOG('No video ID, waiting for ad to finish');
         reloadPending = false;
-        reloadCount = 0;
       }
     }
   }
 
-  // Reset reload count when an ad-free page loads
-  setInterval(() => {
-    if (!isAdPlaying()) reloadCount = 0;
-  }, 2000);
-
-  // When the tab regains focus after being backgrounded, reset the reload
-  // counter and re-evaluate.
+  // When the tab regains focus after being backgrounded, re-evaluate without
+  // discarding the retry history that selects the next fallback strategy.
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      reloadCount = 0;
-      LOG('Tab visible again — reset reload counter');
-      setTimeout(() => { if (!isAdPlaying()) handleAd(); }, 500);
+      setTimeout(() => { if (isAdPlaying()) handleAd(); }, 500);
     }
   });
 
   // ---- Post-reload: seek to saved time ----
-  function restoreAfterReload() {
-    try {
-      const savedTime = sessionStorage.getItem('yt-ad-reloader-time');
-      const savedVid = sessionStorage.getItem('yt-ad-reloader-vid');
-      const currentVid = new URLSearchParams(location.search).get('v');
-      if (savedTime && savedVid && savedVid === currentVid) {
-        const t = parseInt(savedTime, 10);
-        LOG('Restoring playback to', t, 's');
-        const v = document.querySelector('video');
-        if (!v) return;
-        let attempts = 0;
-        const seek = () => {
-          attempts++;
-          try {
-            const player = document.querySelector('#movie_player');
-            if (player && typeof player.seekTo === 'function') {
-              player.seekTo(t, true);
-              LOG('Seeked via player API to', t);
-            }
-          } catch (e) {}
-          try { v.currentTime = t; } catch (e) {}
-          v.play().catch(() => {});
-          setTimeout(() => {
-            if (Math.abs(v.currentTime - t) > 3 && attempts < 5) {
-              LOG('Seek drift, retrying... (attempt', attempts, ')');
-              seek();
-            } else {
-              LOG('Restored to', Math.floor(v.currentTime), 's');
-              sessionStorage.removeItem('yt-ad-reloader-time');
-              sessionStorage.removeItem('yt-ad-reloader-vid');
-              // Leave no t= in the address bar: copied/reopened links start at 0.
-              try {
-                const clean = new URL(location.href);
-                if (clean.searchParams.has('t')) {
-                  clean.searchParams.delete('t');
-                  history.replaceState(null, '', clean.toString());
-                  LOG('Cleaned t= from URL');
-                }
-              } catch (e) {}
-            }
-          }, 1500);
-        };
-        if (v.readyState >= 2) {
-          seek();
-        } else {
-          v.addEventListener('loadedmetadata', seek, { once: true });
-          setTimeout(() => { if (v.readyState < 2) seek(); }, 3000);
-        }
+  let restoreAttempt = null;
+
+  // Called from the ad-free branch of the main loop. Retry on a later tick
+  // when the player has not mounted yet, and never seek during a known ad.
+  function checkContentPlayback() {
+    if (reloadPending) return;
+    const videoId = currentVideoId();
+    const state = retryState.read(videoId);
+    if (!state.reloadCount) return;
+
+    const v = document.querySelector('video');
+    if (!v || v.readyState < 2) return;
+    const t = state.playbackTime;
+    const restored = t !== null && Math.abs(v.currentTime - t) <= 3;
+    if (t !== null && !restored) {
+      if (restoreAttempt?.videoId !== videoId || restoreAttempt.video !== v) {
+        restoreAttempt = { videoId, video: v, count: 0, nextAt: 0 };
       }
-    } catch (e) { LOG('restore error', e); }
+      const now = Date.now();
+      if (now < restoreAttempt.nextAt) return;
+      if (restoreAttempt.count < 5) {
+        restoreAttempt.count++;
+        restoreAttempt.nextAt = now + 1500;
+        try {
+          const player = document.querySelector('#movie_player');
+          if (typeof player?.seekTo === 'function') player.seekTo(t, true);
+        } catch (e) {}
+        try { v.currentTime = t; } catch (e) {}
+        v.play().catch(() => {});
+        return;
+      }
+    }
+
+    if (!YTAdReloaderRetryState.isSuccessfulPlayback(v)) return;
+    restoreAttempt = null;
+    retryState.reset(videoId);
+    LOG('Content playback confirmed — reset retry state');
+
+    if (restored) {
+      try {
+        const clean = new URL(location.href);
+        if (clean.searchParams.get('t') === t + 's') {
+          clean.searchParams.delete('t');
+          history.replaceState(null, '', clean.toString());
+        }
+      } catch (e) {}
+    }
   }
 
   // ---- Main loop ----
   function init() {
-    restoreAfterReload();
-
     const observer = new MutationObserver(() => {
       if (isAdPlaying()) handleAd();
     });
@@ -305,6 +283,7 @@
 
     setInterval(() => {
       if (isAdPlaying()) handleAd();
+      else checkContentPlayback();
     }, CHECK_INTERVAL);
 
     LOG('Initialized. Watching for ads...');

@@ -30,6 +30,7 @@
         "https://m.youtube.com/*"
       ],
       "js": [
+        "retry-state.js",
         "content.js"
       ],
       "run_at": "document_idle"
